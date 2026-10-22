@@ -1,0 +1,31 @@
+# Keeps this fork's main branch up to date with tangency-labs/solidcraft.
+# Runs once a day and on demand (Actions > Sync fork > Run workflow). GitHub merges the upstream
+# changes into main itself (fast-forward, or a merge commit while this file is the only
+# difference), so nothing is checked out or built here.
+#
+# GITHUB_TOKEN can't write files under .github/workflows/. When an upstream change touches a
+# workflow, the sync fails with "refusing to allow a GitHub App to create or update workflow";
+# add a fine-grained token with Contents and Workflows write access to this repository as the
+# secret SYNC_TOKEN and it is used instead.
+name: Sync fork
+
+on:
+  schedule:
+    - cron: "30 4 * * *"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: sync-fork
+
+jobs:
+  sync:
+    if: github.event.repository.fork
+    runs-on: ubuntu-latest
+    steps:
+      - name: Merge upstream into main
+        env:
+          GH_TOKEN: ${{ secrets.SYNC_TOKEN || github.token }}
+        run: gh api --method POST "repos/$GITHUB_REPOSITORY/merge-upstream" -f branch=main
